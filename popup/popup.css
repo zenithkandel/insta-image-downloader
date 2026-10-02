@@ -1,0 +1,267 @@
+/* ==========================================================================
+   Extension Popup Styles
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 340px;
+  background-color: #121214;
+  color: #f0f0f4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+.popup-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Header */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.brand-text h1 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.brand-text .version {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 210, 106, 0.12);
+  border: 1px solid rgba(0, 210, 106, 0.3);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00d26a;
+  box-shadow: 0 0 6px #00d26a;
+}
+
+.status-text {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #00d26a;
+}
+
+/* Formats Showcase */
+.format-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.format-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.zip-icon {
+  background: linear-gradient(135deg, rgba(253, 29, 29, 0.2), rgba(252, 176, 69, 0.25));
+  border: 1px solid rgba(253, 29, 29, 0.3);
+}
+
+.pdf-icon {
+  background: linear-gradient(135deg, rgba(131, 58, 180, 0.2), rgba(253, 29, 29, 0.25));
+  border: 1px solid rgba(131, 58, 180, 0.3);
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.card-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
+}
+
+/* Settings */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.setting-info label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  display: block;
+  cursor: pointer;
+}
+
+.setting-info span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+}
+
+/* Switch toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d);
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+/* Guide box */
+.guide-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.guide-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd24d;
+  margin-bottom: 6px;
+}
+
+.guide-steps {
+  padding-left: 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guide-steps strong {
+  color: #ffffff;
+}
+
+/* Footer */
+.popup-footer {
+  padding-top: 4px;
+}
+
+.open-insta-btn {
+  display: block;
+  text-align: center;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.open-insta-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

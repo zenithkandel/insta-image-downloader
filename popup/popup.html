@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Media Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <img src="../icons/icon48.png" alt="Logo" class="logo">
+        <div class="brand-text">
+          <h1>InstaDownloader</h1>
+          <span class="version">v1.0.0 • ZIP &amp; PDF</span>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Active</span>
+      </div>
+    </header>
+
+    <!-- Formats Showcase -->
+    <div class="format-cards">
+      <div class="format-card">
+        <div class="card-icon zip-icon">📦</div>
+        <div class="card-content">
+          <div class="card-title">ZIP Archive</div>
+          <div class="card-desc">All images + videos in original quality</div>
+        </div>
+      </div>
+      <div class="format-card">
+        <div class="card-icon pdf-icon">📄</div>
+        <div class="card-content">
+          <div class="card-title">PDF Document</div>
+          <div class="card-desc">Images only • Videos excluded automatically</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Preferences -->
+    <div class="settings-section">
+      <div class="section-title">Preferences</div>
+      
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="floatingBadgeToggle">Media Floating Button</label>
+          <span>Show quick download button on top-right of posts</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="floatingBadgeToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="includeVideosToggle">Include Videos in ZIP</label>
+          <span>Download MP4 videos alongside images in ZIP files</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="includeVideosToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Usage Guide -->
+    <div class="guide-box">
+      <div class="guide-title">💡 How to use</div>
+      <ol class="guide-steps">
+        <li>Browse Instagram feed, post dialogs, or carousel posts.</li>
+        <li>Click the <strong>Download icon</strong> next to the Save button or on the media.</li>
+        <li>Choose <strong>ZIP</strong> for images + videos, or <strong>PDF</strong> for image documents!</li>
+      </ol>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <a href="https://www.instagram.com" target="_blank" class="open-insta-btn">
+        Open Instagram ↗
+      </a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
