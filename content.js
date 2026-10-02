@@ -38,9 +38,9 @@
     }
 
     const iconHtml = isSuccess
-      ? '<span style="color:#00d26a; font-size:16px;">✓</span>'
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
       : isError
-      ? '<span style="color:#ff3366; font-size:16px;">✕</span>'
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
       : '<span class="insta-dl-spinner"></span>';
 
     activeToast.className = `insta-dl-toast ${indeterminate ? 'insta-dl-progress-indeterminate' : ''}`;
@@ -50,7 +50,9 @@
           ${iconHtml}
           <span>${title}</span>
         </div>
-        <button class="insta-dl-toast-close" title="Close">✕</button>
+        <button class="insta-dl-toast-close" title="Close">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div class="insta-dl-toast-msg">${message}</div>
       <div class="insta-dl-progress-bar-bg">
@@ -742,37 +744,55 @@
           <span class="insta-dl-menu-username">@${metadata.username}</span>
           <span class="insta-dl-menu-subtitle">${mediaTypeLabel}</span>
         </div>
-        <span class="insta-dl-badge">DOWNLOAD</span>
       </div>
 
       <div class="insta-dl-menu-item" data-action="zip">
-        <div class="insta-dl-item-icon insta-dl-icon-zip">📦</div>
+        <div class="insta-dl-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8v13H3V8"></path>
+            <path d="M1 3h22v5H1z"></path>
+            <path d="M10 12h4"></path>
+          </svg>
+        </div>
         <div class="insta-dl-item-content">
           <div class="insta-dl-item-title">
-            <span>Download All as ZIP</span>
-            <span class="insta-dl-tag">ZIP</span>
+            <span>Download ZIP</span>
+            <span class="insta-dl-tag">.ZIP</span>
           </div>
-          <div class="insta-dl-item-desc">All images + videos in original quality</div>
+          <div class="insta-dl-item-desc">All images &amp; videos archive</div>
         </div>
       </div>
 
       <div class="insta-dl-menu-item" data-action="pdf">
-        <div class="insta-dl-item-icon insta-dl-icon-pdf">📄</div>
+        <div class="insta-dl-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
         <div class="insta-dl-item-content">
           <div class="insta-dl-item-title">
-            <span>Download Images as PDF</span>
-            <span class="insta-dl-tag">PDF</span>
+            <span>Download PDF</span>
+            <span class="insta-dl-tag">.PDF</span>
           </div>
-          <div class="insta-dl-item-desc">Multi-page PDF • Videos excluded</div>
+          <div class="insta-dl-item-desc">Images only • Multi-page document</div>
         </div>
       </div>
 
       <div class="insta-dl-menu-item" data-action="current">
-        <div class="insta-dl-item-icon insta-dl-icon-single">🖼️</div>
+        <div class="insta-dl-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
         <div class="insta-dl-item-content">
           <div class="insta-dl-item-title">
-            <span>Download Current Slide</span>
-            <span class="insta-dl-tag">FAST</span>
+            <span>Current Slide</span>
+            <span class="insta-dl-tag">ACTIVE</span>
           </div>
           <div class="insta-dl-item-desc">Save active image or video only</div>
         </div>

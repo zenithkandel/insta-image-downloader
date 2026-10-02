@@ -14,7 +14,7 @@
         <img src="../icons/icon48.png" alt="Logo" class="logo">
         <div class="brand-text">
           <h1>InstaDownloader</h1>
-          <span class="version">v1.0.0 • ZIP &amp; PDF</span>
+          <span class="version">v1.0.0</span>
         </div>
       </div>
       <div class="status-indicator">
@@ -26,18 +26,34 @@
     <!-- Formats Showcase -->
     <div class="format-cards">
       <div class="format-card">
-        <div class="card-icon zip-icon">📦</div>
+        <div class="card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8v13H3V8"></path>
+            <path d="M1 3h22v5H1z"></path>
+            <path d="M10 12h4"></path>
+          </svg>
+        </div>
         <div class="card-content">
           <div class="card-title">ZIP Archive</div>
-          <div class="card-desc">All images + videos in original quality</div>
+          <div class="card-desc">All images &amp; videos in full resolution</div>
         </div>
+        <span class="card-tag">.ZIP</span>
       </div>
+
       <div class="format-card">
-        <div class="card-icon pdf-icon">📄</div>
+        <div class="card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+        </div>
         <div class="card-content">
           <div class="card-title">PDF Document</div>
           <div class="card-desc">Images only • Videos excluded automatically</div>
         </div>
+        <span class="card-tag">.PDF</span>
       </div>
     </div>
 
@@ -48,7 +64,7 @@
       <div class="setting-row">
         <div class="setting-info">
           <label for="floatingBadgeToggle">Media Floating Button</label>
-          <span>Show quick download button on top-right of posts</span>
+          <span>Show quick download button on post images</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="floatingBadgeToggle" checked>
@@ -59,7 +75,7 @@
       <div class="setting-row">
         <div class="setting-info">
           <label for="includeVideosToggle">Include Videos in ZIP</label>
-          <span>Download MP4 videos alongside images in ZIP files</span>
+          <span>Bundle MP4 videos alongside images in ZIP</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="includeVideosToggle" checked>
@@ -70,11 +86,11 @@
 
     <!-- Usage Guide -->
     <div class="guide-box">
-      <div class="guide-title">💡 How to use</div>
+      <div class="guide-title">How to use</div>
       <ol class="guide-steps">
         <li>Browse Instagram feed, post dialogs, or carousel posts.</li>
-        <li>Click the <strong>Download icon</strong> next to the Save button or on the media.</li>
-        <li>Choose <strong>ZIP</strong> for images + videos, or <strong>PDF</strong> for image documents!</li>
+        <li>Click the <strong>Download icon</strong> beside the Save button.</li>
+        <li>Select <strong>ZIP</strong> for all media, or <strong>PDF</strong> for image documents.</li>
       </ol>
     </div>
 
