@@ -104,14 +104,12 @@
    Dropdown Menu
    ========================================================================== */
 .insta-dl-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
   width: 280px;
   border-radius: 16px;
   box-shadow: var(--insta-dl-shadow);
   padding: 8px;
-  z-index: 999999;
+  z-index: 2147483647;
   font-family: var(--insta-dl-font);
   animation: instaDlPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top right;

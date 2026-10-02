@@ -359,6 +359,12 @@
   // Blob Fetching with Background Worker Fallback
   // =========================================================================
   async function fetchMediaBlob(url) {
+    if (url.startsWith('data:')) {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return { blob, dataUrl: url };
+    }
+
     try {
       const response = await fetch(url, { mode: 'cors' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -367,6 +373,9 @@
     } catch (directError) {
       // Fall back to background worker cross-origin fetch
       return new Promise((resolve, reject) => {
+        if (!chrome.runtime || !chrome.runtime.sendMessage) {
+          return reject(new Error('Browser extension runtime unavailable.'));
+        }
         chrome.runtime.sendMessage(
           { action: 'FETCH_BLOB', url },
           (res) => {
@@ -788,8 +797,40 @@
       }
     });
 
-    anchorElement.appendChild(menu);
+    // Calculate smart fixed position
+    const rect = anchorElement.getBoundingClientRect();
+    const menuWidth = 280;
+    const menuHeight = 230;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    let top, left;
+
+    if (spaceBelow < menuHeight + 20 && rect.top > menuHeight + 20) {
+      // Open upwards
+      top = rect.top - menuHeight - 8;
+    } else {
+      // Open downwards
+      top = rect.bottom + 8;
+    }
+
+    // Align right edge of menu with right edge of anchor button
+    left = rect.right - menuWidth;
+    if (left < 10) left = 10;
+    if (left + menuWidth > window.innerWidth - 10) {
+      left = window.innerWidth - menuWidth - 10;
+    }
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+
+    document.body.appendChild(menu);
     openDropdown = menu;
+
+    function onScrollOrResize() {
+      closeOpenDropdown();
+    }
+    window.addEventListener('scroll', onScrollOrResize, { passive: true, once: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true, once: true });
   }
 
   // =========================================================================
