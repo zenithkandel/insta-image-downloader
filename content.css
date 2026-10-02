@@ -1,0 +1,409 @@
+/* ==========================================================================
+   Instagram Media Downloader - Content Styles
+   Modern, native-feeling styling for buttons, dropdowns, and progress toasts.
+   ========================================================================== */
+
+:root {
+  --insta-dl-accent-grad: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  --insta-dl-bg-dark: rgba(22, 22, 24, 0.94);
+  --insta-dl-bg-light: rgba(255, 255, 255, 0.96);
+  --insta-dl-border-dark: rgba(255, 255, 255, 0.12);
+  --insta-dl-border-light: rgba(0, 0, 0, 0.1);
+  --insta-dl-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  --insta-dl-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ==========================================================================
+   Action Bar Download Button
+   ========================================================================== */
+.insta-dl-action-btn-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  position: relative;
+  vertical-align: middle;
+}
+
+.insta-dl-action-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  border-radius: 50%;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease, background-color 0.15s ease;
+  outline: none;
+}
+
+.insta-dl-action-btn:hover {
+  opacity: 0.75;
+  transform: scale(1.08);
+}
+
+.insta-dl-action-btn:active {
+  transform: scale(0.92);
+}
+
+.insta-dl-action-btn svg {
+  display: block;
+  fill: currentColor;
+  width: 24px;
+  height: 24px;
+}
+
+/* ==========================================================================
+   Floating Media Badge (Top-Right of Post Media)
+   ========================================================================== */
+.insta-dl-media-badge-container {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.insta-dl-media-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 18, 18, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: var(--insta-dl-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.85;
+}
+
+.insta-dl-media-badge:hover {
+  opacity: 1;
+  transform: translateY(-1px) scale(1.04);
+  background: rgba(24, 24, 28, 0.9);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.insta-dl-media-badge svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+/* ==========================================================================
+   Dropdown Menu
+   ========================================================================== */
+.insta-dl-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  border-radius: 16px;
+  box-shadow: var(--insta-dl-shadow);
+  padding: 8px;
+  z-index: 999999;
+  font-family: var(--insta-dl-font);
+  animation: instaDlPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top right;
+  user-select: none;
+}
+
+/* Dark mode (default Instagram or system dark) */
+@media (prefers-color-scheme: dark) {
+  .insta-dl-dropdown {
+    background: var(--insta-dl-bg-dark);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--insta-dl-border-dark);
+    color: #f5f5f7;
+  }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  .insta-dl-dropdown {
+    background: var(--insta-dl-bg-light);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--insta-dl-border-light);
+    color: #1a1a1a;
+  }
+}
+
+/* Detect Instagram body dark mode class override */
+html[class*="dark"] .insta-dl-dropdown,
+body[class*="dark"] .insta-dl-dropdown {
+  background: var(--insta-dl-bg-dark) !important;
+  border-color: var(--insta-dl-border-dark) !important;
+  color: #f5f5f7 !important;
+}
+
+@keyframes instaDlPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.insta-dl-menu-header {
+  padding: 8px 12px 10px 12px;
+  border-bottom: 1px solid rgba(150, 150, 150, 0.15);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.insta-dl-menu-header-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.insta-dl-menu-username {
+  font-size: 13px;
+  font-weight: 700;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insta-dl-menu-subtitle {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 1px;
+}
+
+.insta-dl-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: var(--insta-dl-accent-grad);
+  color: #ffffff;
+}
+
+.insta-dl-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+.insta-dl-menu-item:hover {
+  background: rgba(150, 150, 150, 0.12);
+  transform: translateX(2px);
+}
+
+.insta-dl-menu-item:active {
+  transform: scale(0.98);
+}
+
+.insta-dl-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.insta-dl-icon-zip {
+  background: linear-gradient(135deg, rgba(253, 29, 29, 0.15), rgba(252, 176, 69, 0.2));
+  color: #fd1d1d;
+  border: 1px solid rgba(253, 29, 29, 0.25);
+}
+
+.insta-dl-icon-pdf {
+  background: linear-gradient(135deg, rgba(131, 58, 180, 0.15), rgba(253, 29, 29, 0.2));
+  color: #9d3bf5;
+  border: 1px solid rgba(131, 58, 180, 0.25);
+}
+
+.insta-dl-icon-single {
+  background: linear-gradient(135deg, rgba(0, 149, 246, 0.15), rgba(0, 200, 255, 0.2));
+  color: #0095f6;
+  border: 1px solid rgba(0, 149, 246, 0.25);
+}
+
+.insta-dl-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.insta-dl-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insta-dl-item-desc {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+.insta-dl-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(150, 150, 150, 0.2);
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   Progress & Status Toast
+   ========================================================================== */
+.insta-dl-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 320px;
+  background: rgba(18, 18, 22, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  padding: 16px;
+  z-index: 1000000;
+  font-family: var(--insta-dl-font);
+  animation: instaDlToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.insta-dl-toast.closing {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+@keyframes instaDlToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.insta-dl-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.insta-dl-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.insta-dl-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #ff3366;
+  border-radius: 50%;
+  animation: instaDlSpin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes instaDlSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.insta-dl-toast-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.insta-dl-toast-close:hover {
+  color: #ffffff;
+}
+
+.insta-dl-toast-msg {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+
+.insta-dl-progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.insta-dl-progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--insta-dl-accent-grad);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.insta-dl-progress-indeterminate .insta-dl-progress-bar-fill {
+  width: 40%;
+  position: absolute;
+  animation: instaDlIndeterminate 1.2s infinite ease-in-out;
+}
+
+@keyframes instaDlIndeterminate {
+  0% {
+    left: -40%;
+  }
+  50% {
+    left: 40%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
