@@ -127,19 +127,19 @@
   // =========================================================================
   // DOM Metadata & Shortcode Extraction
   // =========================================================================
-  function getPostMetadata(article) {
+  function getPostMetadata(postContainer) {
     let shortcode = '';
     let username = '';
 
     // Check location URL if on single post page (/p/SHORTCODE or /reel/SHORTCODE)
-    const pageMatch = window.location.pathname.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
+    const pageMatch = window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
     if (pageMatch) {
-      shortcode = pageMatch[2];
+      shortcode = pageMatch[1];
     }
 
-    // Check links inside article
-    if (!shortcode) {
-      const postLinks = article.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
+    // Check links inside postContainer
+    if (!shortcode && postContainer) {
+      const postLinks = postContainer.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
       for (const link of postLinks) {
         const href = link.getAttribute('href') || '';
         const match = href.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
@@ -150,21 +150,41 @@
       }
     }
 
-    // Try finding username in header or user link
-    const userLink = article.querySelector('header a[href^="/"], a._a6hd[href^="/"]');
-    if (userLink) {
-      const rawUser = userLink.getAttribute('href') || '';
-      const cleanUser = rawUser.replace(/\//g, '').split('?')[0];
-      if (cleanUser && cleanUser !== 'explore' && cleanUser !== 'p' && cleanUser !== 'reel') {
-        username = cleanUser;
+    // Fallback: check canonical or og:url meta tags
+    if (!shortcode) {
+      const ogUrl = document.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+      const match = ogUrl.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+      if (match && match[1]) {
+        shortcode = match[1];
       }
     }
 
-    if (!username) {
-      // Look for any link with role="link" containing username text
-      const authorElem = article.querySelector('span._ap3a._aaco._aacw._aacx._aad7._aade');
+    // Try finding username in header or user links
+    if (postContainer) {
+      const userLinks = postContainer.querySelectorAll('header a[href^="/"], a._a6hd[href^="/"], h2 a, a[role="link"][href^="/"]');
+      for (const userLink of userLinks) {
+        const rawUser = userLink.getAttribute('href') || '';
+        const cleanUser = rawUser.replace(/\//g, '').split('?')[0];
+        if (cleanUser && !['explore', 'p', 'reel', 'stories', 'direct'].includes(cleanUser)) {
+          username = cleanUser;
+          break;
+        }
+      }
+    }
+
+    if (!username && postContainer) {
+      // Look for any element with username text
+      const authorElem = postContainer.querySelector('span._ap3a._aaco._aacw._aacx._aad7._aade, h2');
       if (authorElem && authorElem.textContent.trim()) {
         username = authorElem.textContent.trim();
+      }
+    }
+
+    // Fallback: extract username from document title e.g. "Mahabir Pun on Instagram: ..."
+    if (!username) {
+      const titleMatch = document.title.match(/^([^•:(@]+)/);
+      if (titleMatch && titleMatch[1]) {
+        username = titleMatch[1].trim().replace(/\s+/g, '_');
       }
     }
 
@@ -221,17 +241,35 @@
       }
 
       // Check main image
-      const imgs = article.querySelectorAll('div._aagu img, div._aagv img, img[crossorigin="anonymous"]');
+      const imgs = article.querySelectorAll('div._aagu img, div._aagv img, div._aatk img, img[crossorigin="anonymous"], img[src*="cdninstagram"], img[src*="fbcdn"], img');
       let bestImg = null;
+      let maxArea = 0;
+
       for (const img of imgs) {
-        // Exclude small profile pictures
+        // Exclude small profile pictures, avatars, and emojis
         const w = img.clientWidth || img.naturalWidth || 0;
-        if (w > 150) {
-          bestImg = img;
-          break;
+        const h = img.clientHeight || img.naturalHeight || 0;
+        const area = w * h;
+
+        if (w > 160 && h > 160 && area > maxArea) {
+          // Avoid recommendation grid images at bottom if on standalone page
+          const isFooterRec = img.closest('main > div:nth-child(2)');
+          if (!isFooterRec) {
+            maxArea = area;
+            bestImg = img;
+          }
         }
       }
-      if (!bestImg && imgs.length > 0) bestImg = imgs[0];
+
+      if (!bestImg && imgs.length > 0) {
+        for (const img of imgs) {
+          const w = img.clientWidth || img.naturalWidth || 0;
+          if (w > 120) {
+            bestImg = img;
+            break;
+          }
+        }
+      }
 
       if (bestImg) {
         const url = getHighestResImageFromElement(bestImg);
@@ -864,31 +902,79 @@
     </svg>
   `;
 
-  function injectButtonsIntoArticle(article) {
-    if (!article || article.hasAttribute('data-insta-dl-injected')) return;
+  function findActionIcons() {
+    const list = [];
+    const seen = new Set();
 
-    // 1. Locate Action Section (containing Like, Comment, Share, Save)
-    const sections = article.querySelectorAll('section');
-    let actionSection = null;
-
-    for (const section of sections) {
-      if (
-        section.querySelector('svg[aria-label="Like"], svg[aria-label="Unlike"]') ||
-        section.querySelector('svg[aria-label="Save"], svg[aria-label="Remove"]') ||
-        section.querySelector('svg[aria-label="Share"], svg[aria-label="Share Post"]')
-      ) {
-        actionSection = section;
-        break;
+    // 1. Save icons with aria-label
+    const saveAria = document.querySelectorAll(`
+      svg[aria-label="Save"],
+      svg[aria-label="Remove"],
+      svg[aria-label*="Save" i],
+      svg[aria-label*="Bookmark" i]
+    `);
+    saveAria.forEach((svg) => {
+      if (!seen.has(svg)) {
+        seen.add(svg);
+        list.push({ svg, isSave: true });
       }
-    }
+    });
 
-    if (!actionSection) {
-      // If no section found yet (might still be rendering), don't mark as permanently injected
-      return;
-    }
+    // 2. Language-independent Save ribbon (Instagram's SVG ribbon polygon: points starting with 20 21)
+    const polygons = document.querySelectorAll('polygon[points*="20 21"]');
+    polygons.forEach((poly) => {
+      const svg = poly.closest('svg');
+      if (svg && !seen.has(svg)) {
+        seen.add(svg);
+        list.push({ svg, isSave: true });
+      }
+    });
 
-    // Mark post as injected
-    article.setAttribute('data-insta-dl-injected', 'true');
+    // 3. Fallback: Share icons (paper plane)
+    const shareAria = document.querySelectorAll('svg[aria-label="Share"], svg[aria-label="Share Post"]');
+    shareAria.forEach((svg) => {
+      if (!seen.has(svg)) {
+        seen.add(svg);
+        list.push({ svg, isSave: false });
+      }
+    });
+
+    return list;
+  }
+
+  function injectDownloadButtonAtIcon(svg, isSave) {
+    if (!svg) return;
+
+    // Locate enclosing action row (section, toolbar, or container)
+    const actionRow =
+      svg.closest('section') ||
+      svg.closest('div.x78zum5.x1q0g3np') ||
+      svg.closest('div[role="toolbar"]') ||
+      svg.parentElement?.parentElement;
+
+    if (!actionRow) return;
+    if (actionRow.querySelector('.insta-dl-action-btn-wrapper')) return;
+
+    // Locate the button container
+    const iconBtn =
+      svg.closest('div[role="button"]') ||
+      svg.closest('button') ||
+      svg.closest('.x14z9mp') ||
+      svg.parentElement;
+
+    if (!iconBtn || !iconBtn.parentElement) return;
+
+    // Locate overall post container (handles article, dialog, or standalone page containers)
+    const postContainer =
+      svg.closest('article') ||
+      svg.closest('div[role="dialog"]') ||
+      svg.closest('div[style*="max-width"]') ||
+      svg.closest('div._aatb') ||
+      svg.closest('main') ||
+      document.querySelector('main') ||
+      document.body;
+
+    actionRow.setAttribute('data-insta-dl-injected', 'true');
 
     // Create Action Bar Download Button
     const btnWrapper = document.createElement('div');
@@ -898,90 +984,95 @@
     btn.type = 'button';
     btn.className = 'insta-dl-action-btn';
     btn.setAttribute('aria-label', 'Download Options');
+    btn.setAttribute('title', 'Download Media');
     btn.innerHTML = DOWNLOAD_ICON_SVG;
 
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      showDownloadMenu(btnWrapper, article);
+      showDownloadMenu(btnWrapper, postContainer);
     });
 
     btnWrapper.appendChild(btn);
 
-    // Place right beside the Save/Bookmark button if present, or at the end of the action section
-    const saveIcon = actionSection.querySelector('svg[aria-label="Save"], svg[aria-label="Remove"]');
-    if (saveIcon) {
-      const saveContainer = saveIcon.closest('div[role="button"]') || saveIcon.closest('.x14z9mp') || saveIcon.parentElement;
-      if (saveContainer && saveContainer.parentElement) {
-        saveContainer.parentElement.insertBefore(btnWrapper, saveContainer);
-      } else {
-        actionSection.appendChild(btnWrapper);
-      }
+    // Insert right before the Save icon, or right after Share icon
+    if (isSave) {
+      iconBtn.parentElement.insertBefore(btnWrapper, iconBtn);
     } else {
-      actionSection.appendChild(btnWrapper);
+      iconBtn.parentElement.appendChild(btnWrapper);
     }
 
-    // 2. Also inject a floating badge onto the media container for rapid 1-click access
-    const mediaContainer =
-      article.querySelector('div._aagu') ||
-      article.querySelector('div._aagv') ||
-      article.querySelector('ul') ||
-      article.querySelector('div[role="presentation"]');
-
-    if (mediaContainer && !article.querySelector('.insta-dl-media-badge-container')) {
-      const badgeContainer = document.createElement('div');
-      badgeContainer.className = 'insta-dl-media-badge-container';
-
-      const badge = document.createElement('button');
-      badge.type = 'button';
-      badge.className = 'insta-dl-media-badge';
-      badge.innerHTML = `
-        <svg viewBox="0 0 24 24"><path d="M12 2.5a1 1 0 0 1 1 1v10.172l2.879-2.879a1 1 0 1 1 1.414 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-4.586-4.586a1 1 0 1 1 1.414-1.414L11 13.672V3.5a1 1 0 0 1 1-1Z" fill="currentColor"></path><path d="M3.5 16.5a1 1 0 0 1 1 1V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-1.5a1 1 0 1 1 2 0V19a3 3 0 0 1-3 3H5.5a3 3 0 0 1-3-3v-1.5a1 1 0 0 1 1-1Z" fill="currentColor"></path></svg>
-        <span>Download</span>
-      `;
-
-      badge.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showDownloadMenu(badgeContainer, article);
-      });
-
-      badgeContainer.appendChild(badge);
-
-      // Media container must be relatively positioned
-      const parentStyle = window.getComputedStyle(mediaContainer);
-      if (parentStyle.position === 'static') {
-        mediaContainer.style.position = 'relative';
-      }
-      mediaContainer.appendChild(badgeContainer);
-    }
+    // Also inject floating badge on media if present
+    injectFloatingBadge(postContainer);
   }
 
-  // Scan all articles across the document
-  function scanAndInject() {
-    // Both standard articles and dialog overlay articles
-    const articles = document.querySelectorAll('article:not([data-insta-dl-injected])');
-    articles.forEach((article) => {
-      injectButtonsIntoArticle(article);
+  function injectFloatingBadge(postContainer) {
+    if (!postContainer || postContainer.querySelector('.insta-dl-media-badge-container')) return;
+
+    const mediaContainer =
+      postContainer.querySelector('div._aagu') ||
+      postContainer.querySelector('div._aagv') ||
+      postContainer.querySelector('div._aatk') ||
+      postContainer.querySelector('ul') ||
+      postContainer.querySelector('div[role="presentation"]') ||
+      postContainer.querySelector('img[crossorigin="anonymous"]')?.closest('div') ||
+      postContainer.querySelector('video')?.closest('div');
+
+    if (!mediaContainer || mediaContainer.querySelector('.insta-dl-media-badge-container')) return;
+
+    const badgeContainer = document.createElement('div');
+    badgeContainer.className = 'insta-dl-media-badge-container';
+
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'insta-dl-media-badge';
+    badge.innerHTML = `
+      <svg viewBox="0 0 24 24"><path d="M12 2.5a1 1 0 0 1 1 1v10.172l2.879-2.879a1 1 0 1 1 1.414 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-4.586-4.586a1 1 0 1 1 1.414-1.414L11 13.672V3.5a1 1 0 0 1 1-1Z" fill="currentColor"></path><path d="M3.5 16.5a1 1 0 0 1 1 1V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-1.5a1 1 0 1 1 2 0V19a3 3 0 0 1-3 3H5.5a3 3 0 0 1-3-3v-1.5a1 1 0 0 1 1-1Z" fill="currentColor"></path></svg>
+      <span>Download</span>
+    `;
+
+    badge.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showDownloadMenu(badgeContainer, postContainer);
     });
 
-    // Also check dedicated dialog or modal overlays
-    const dialogs = document.querySelectorAll('div[role="dialog"]');
-    dialogs.forEach((dialog) => {
-      const modalArticle = dialog.querySelector('article:not([data-insta-dl-injected])');
-      if (modalArticle) {
-        injectButtonsIntoArticle(modalArticle);
-      }
+    badgeContainer.appendChild(badge);
+
+    const parentStyle = window.getComputedStyle(mediaContainer);
+    if (parentStyle.position === 'static') {
+      mediaContainer.style.position = 'relative';
+    }
+    mediaContainer.appendChild(badgeContainer);
+  }
+
+  // Master scan function
+  function scanAndInject() {
+    // 1. Find all action bars by Save / Share icons (works on feed, modal overlay, AND standalone /p/:id/ pages)
+    const actionIcons = findActionIcons();
+    actionIcons.forEach((info) => {
+      injectDownloadButtonAtIcon(info.svg, info.isSave);
     });
+
+    // 2. Scan articles for media badges
+    document.querySelectorAll('article').forEach((article) => {
+      injectFloatingBadge(article);
+    });
+
+    // 3. Standalone post or reel page media check
+    if (window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/)) {
+      const main = document.querySelector('main') || document.body;
+      injectFloatingBadge(main);
+    }
   }
 
   // =========================================================================
-  // MutationObserver for Dynamic Feed Loading & SPAs
+  // Lifecycle & Route Observer
   // =========================================================================
   let debounceTimeout = null;
   const observer = new MutationObserver(() => {
     if (debounceTimeout) clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(scanAndInject, 150);
+    debounceTimeout = setTimeout(scanAndInject, 100);
   });
 
   observer.observe(document.body, {
@@ -996,8 +1087,25 @@
     scanAndInject();
   }
 
-  // Re-scan when history changes (SPA route transitions)
+  // Periodic safety check to handle lazy-loaded action bars
+  setInterval(scanAndInject, 1000);
+
+  // Hook history pushState and replaceState for SPA route changes
+  const _pushState = history.pushState;
+  history.pushState = function (...args) {
+    const res = _pushState.apply(this, args);
+    setTimeout(scanAndInject, 200);
+    return res;
+  };
+
+  const _replaceState = history.replaceState;
+  history.replaceState = function (...args) {
+    const res = _replaceState.apply(this, args);
+    setTimeout(scanAndInject, 200);
+    return res;
+  };
+
   window.addEventListener('popstate', () => {
-    setTimeout(scanAndInject, 500);
+    setTimeout(scanAndInject, 200);
   });
 })();
