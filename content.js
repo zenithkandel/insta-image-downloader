@@ -907,141 +907,66 @@
     </svg>
   `;
 
-  // Find all action sections / toolbars on the page
-  function findActionBars() {
-    const bars = [];
-    const seen = new Set();
+  // Track user preferences from popup settings
+  let showFloatingBadge = true;
 
-    // 1. Look for all <section> elements that are action bars
-    const sections = document.querySelectorAll('section');
-    for (const sec of sections) {
-      // Exclude comment input form/textarea section
-      if (sec.querySelector('textarea, input[type="text"], form')) continue;
-
-      // Check if section contains Like, Comment, Share, or Save icons/buttons
-      const hasActionIcon = sec.querySelector(`
-        [aria-label*="Like" i],
-        [aria-label*="Unlike" i],
-        [aria-label*="Comment" i],
-        [aria-label*="Share" i],
-        [aria-label*="Direct" i],
-        [aria-label*="Save" i],
-        [aria-label*="Bookmark" i],
-        polygon[points*="20 21"],
-        path[d*="20 21"],
-        path[d*="20 22"],
-        svg
-      `);
-
-      if (hasActionIcon && !seen.has(sec)) {
-        seen.add(sec);
-        bars.push(sec);
-      }
+  function loadSettings() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      try {
+        chrome.storage.local.get(['dlSettings'], (result) => {
+          if (result && result.dlSettings && typeof result.dlSettings.showFloatingBadge === 'boolean') {
+            showFloatingBadge = result.dlSettings.showFloatingBadge;
+            if (!showFloatingBadge) {
+              document.querySelectorAll('.insta-dl-media-badge-container').forEach((el) => el.remove());
+            } else {
+              scanAndInject();
+            }
+          }
+        });
+      } catch (e) {}
     }
-
-    // 2. Fallback: Search directly for Save / Bookmark buttons anywhere in DOM
-    const saveElements = document.querySelectorAll(`
-      [aria-label="Save" i],
-      [aria-label="Bookmark" i],
-      [aria-label="Remove" i],
-      [aria-label*="Save" i],
-      [aria-label*="Bookmark" i],
-      polygon[points*="20 21"],
-      path[d*="20 21"],
-      path[d*="20 22"]
-    `);
-
-    for (const el of saveElements) {
-      const row =
-        el.closest('section') ||
-        el.closest('div[role="toolbar"]') ||
-        el.closest('div.x78zum5.x1q0g3np') ||
-        el.closest('div.x78zum5.xdt5ytf') ||
-        el.parentElement?.parentElement;
-
-      if (row && !seen.has(row)) {
-        seen.add(row);
-        bars.push(row);
-      }
-    }
-
-    // 3. Fallback: Search directly for Share buttons
-    const shareElements = document.querySelectorAll(`
-      [aria-label="Share Post" i],
-      [aria-label="Share" i],
-      [aria-label*="Share" i],
-      [aria-label*="Direct" i]
-    `);
-
-    for (const el of shareElements) {
-      const row =
-        el.closest('section') ||
-        el.closest('div[role="toolbar"]') ||
-        el.closest('div.x78zum5.x1q0g3np') ||
-        el.parentElement?.parentElement;
-
-      if (row && !seen.has(row)) {
-        seen.add(row);
-        bars.push(row);
-      }
-    }
-
-    return bars;
   }
 
-  function injectDownloadButtonIntoActionBar(actionRow) {
-    if (!actionRow) return;
-    if (actionRow.querySelector('.insta-dl-action-btn-wrapper')) return;
+  loadSettings();
 
-    // Locate overall post container (handles article, dialog, or standalone page containers)
-    const postContainer =
-      actionRow.closest('article') ||
-      actionRow.closest('div[role="dialog"]') ||
-      actionRow.closest('main') ||
-      document.querySelector('main') ||
-      document.body;
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.dlSettings) {
+          loadSettings();
+        }
+      });
+    } catch (e) {}
+  }
 
-    // Look for Save button first
-    const saveCandidate = actionRow.querySelector(`
-      [aria-label="Save" i],
-      [aria-label="Bookmark" i],
-      [aria-label="Remove" i],
-      [aria-label*="Save" i],
-      [aria-label*="Bookmark" i],
-      polygon[points*="20 21"],
-      path[d*="20 21"],
-      path[d*="20 22"],
-      [title*="Save" i],
-      [title*="Bookmark" i]
-    `);
-
-    let targetEl = null;
-    let insertBefore = true;
-
-    if (saveCandidate) {
-      targetEl =
-        saveCandidate.closest('div[role="button"]') ||
-        saveCandidate.closest('button') ||
-        (saveCandidate.tagName === 'SVG' ? saveCandidate.parentElement : saveCandidate);
-      insertBefore = true;
-    } else {
-      // Look for Share button as fallback
-      const shareCandidate = actionRow.querySelector(`
-        [aria-label="Share Post" i],
-        [aria-label="Share" i],
-        [aria-label*="Share" i],
-        [aria-label*="Direct" i]
-      `);
-      if (shareCandidate) {
-        targetEl =
-          shareCandidate.closest('div[role="button"]') ||
-          shareCandidate.closest('button') ||
-          (shareCandidate.tagName === 'SVG' ? shareCandidate.parentElement : shareCandidate);
-        insertBefore = false;
+  // Remove any button erroneously placed outside a legitimate post container
+  function cleanupOrphanButtons() {
+    document.querySelectorAll('.insta-dl-action-btn-wrapper').forEach((wrapper) => {
+      if (
+        wrapper.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer') ||
+        (!wrapper.closest('article') &&
+          !wrapper.closest('div[role="dialog"]') &&
+          !window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) &&
+          !document.querySelector('.standalone-post-view'))
+      ) {
+        wrapper.remove();
       }
-    }
+    });
 
-    // Create Action Bar Download Button
+    document.querySelectorAll('.insta-dl-media-badge-container').forEach((badge) => {
+      if (
+        badge.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer') ||
+        (!badge.closest('article') &&
+          !badge.closest('div[role="dialog"]') &&
+          !window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) &&
+          !document.querySelector('.standalone-post-view'))
+      ) {
+        badge.remove();
+      }
+    });
+  }
+
+  function createActionButton(postContainer, sampleSvg) {
     const btnWrapper = document.createElement('div');
     btnWrapper.className = 'insta-dl-action-btn-wrapper';
 
@@ -1052,14 +977,14 @@
     btn.setAttribute('title', 'Download Media');
     btn.innerHTML = DOWNLOAD_ICON_SVG;
 
-    // Harmonize icon color with existing action icons
-    const sampleSvg = actionRow.querySelector('svg');
     if (sampleSvg) {
-      const comp = window.getComputedStyle(sampleSvg);
-      const c = comp.color || comp.fill;
-      if (c && c !== 'none' && c !== 'rgba(0, 0, 0, 0)') {
-        btn.style.color = c;
-      }
+      try {
+        const comp = window.getComputedStyle(sampleSvg);
+        const c = comp.color || comp.fill;
+        if (c && c !== 'none' && c !== 'rgba(0, 0, 0, 0)') {
+          btn.style.color = c;
+        }
+      } catch (e) {}
     }
 
     btn.addEventListener('click', (e) => {
@@ -1069,50 +994,118 @@
     });
 
     btnWrapper.appendChild(btn);
+    return btnWrapper;
+  }
 
-    if (targetEl && targetEl.parentElement) {
-      const parent = targetEl.parentElement;
+  function injectDownloadButtonIntoPost(postContainer) {
+    if (!postContainer) return;
+    // Strictly one download button per post container
+    if (postContainer.querySelector('.insta-dl-action-btn-wrapper')) return;
 
-      // If parent is a tiny fixed-size icon wrapper (e.g., width <= 36px) and has a grand-parent
-      if (parent.clientWidth > 0 && parent.clientWidth <= 36 && parent.parentElement && parent.parentElement !== actionRow) {
-        const grandParent = parent.parentElement;
-        const grandComp = window.getComputedStyle(grandParent);
-        if (grandComp.display === 'block' || grandComp.display === 'inline') {
-          grandParent.style.display = 'inline-flex';
-          grandParent.style.alignItems = 'center';
-        }
-        if (insertBefore) {
-          grandParent.insertBefore(btnWrapper, parent);
-        } else {
-          grandParent.insertBefore(btnWrapper, parent.nextSibling);
-        }
-      } else {
-        const pComp = window.getComputedStyle(parent);
-        if (pComp.display === 'block' || pComp.display === 'inline') {
-          parent.style.display = 'inline-flex';
-          parent.style.alignItems = 'center';
-        }
-        if (insertBefore) {
-          parent.insertBefore(btnWrapper, targetEl);
-        } else {
-          parent.insertBefore(btnWrapper, targetEl.nextSibling);
-        }
-      }
-    } else {
-      // Last resort: append to the actionRow
-      actionRow.appendChild(btnWrapper);
+    // Disallow injection if container is inside navigation, sidebar, or footer
+    if (postContainer.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer')) {
+      return;
     }
 
-    actionRow.setAttribute('data-insta-dl-injected', 'true');
+    // 1. Locate the Save/Bookmark button in this post
+    const saveCandidate = postContainer.querySelector(`
+      [aria-label="Save" i],
+      [aria-label="Save post" i],
+      [aria-label="Saved" i],
+      [aria-label="Remove from saved" i],
+      [aria-label="Bookmark" i],
+      [aria-label*="Bookmark" i],
+      polygon[points*="20 21 12 13.44"],
+      polygon[points*="12 13.44"],
+      [title="Save" i],
+      [title="Bookmark" i]
+    `);
+
+    let validSave = null;
+    if (saveCandidate && !saveCandidate.closest('header, form, ul[class*="comments"], aside, nav, [role="navigation"]')) {
+      validSave = saveCandidate;
+    }
+
+    let targetEl = null;
+    let insertBefore = true;
+
+    if (validSave) {
+      targetEl =
+        validSave.closest('div[role="button"]') ||
+        validSave.closest('button') ||
+        (validSave.tagName === 'SVG' ? validSave.parentElement : validSave);
+      insertBefore = true;
+    } else {
+      // 2. Fallback: Search for the Share button within this post (never "Direct")
+      const shareCandidate = postContainer.querySelector(`
+        [aria-label="Share Post" i],
+        [aria-label="Share" i],
+        [aria-label="Share post" i],
+        [aria-label*="Share Post" i]
+      `);
+
+      if (shareCandidate && !shareCandidate.closest('header, form, ul[class*="comments"], aside, nav, [role="navigation"]')) {
+        targetEl =
+          shareCandidate.closest('div[role="button"]') ||
+          shareCandidate.closest('button') ||
+          (shareCandidate.tagName === 'SVG' ? shareCandidate.parentElement : shareCandidate);
+        insertBefore = false;
+      }
+    }
+
+    // If neither Save nor Share was found, DO NOT inject anything
+    if (!targetEl || !targetEl.parentElement) {
+      return;
+    }
+
+    const actionRow = targetEl.closest('section') || targetEl.parentElement;
+    const sampleSvg = (actionRow && actionRow.querySelector('svg')) || (targetEl && targetEl.querySelector('svg'));
+    const btnWrapper = createActionButton(postContainer, sampleSvg);
+
+    const parent = targetEl.parentElement;
+
+    // If parent is a tiny fixed-size single-button wrapper, inject into grandparent next to the wrapper
+    if (
+      parent.clientWidth > 0 &&
+      parent.clientWidth <= 40 &&
+      parent.parentElement &&
+      parent.parentElement !== postContainer
+    ) {
+      const grandParent = parent.parentElement;
+      const grandComp = window.getComputedStyle(grandParent);
+      if (grandComp.display === 'block' || grandComp.display === 'inline') {
+        grandParent.style.display = 'inline-flex';
+        grandParent.style.alignItems = 'center';
+      }
+      if (insertBefore) {
+        grandParent.insertBefore(btnWrapper, parent);
+      } else {
+        grandParent.insertBefore(btnWrapper, parent.nextSibling);
+      }
+    } else {
+      const pComp = window.getComputedStyle(parent);
+      if (pComp.display === 'block' || pComp.display === 'inline') {
+        parent.style.display = 'inline-flex';
+        parent.style.alignItems = 'center';
+      }
+      if (insertBefore) {
+        parent.insertBefore(btnWrapper, targetEl);
+      } else {
+        parent.insertBefore(btnWrapper, targetEl.nextSibling);
+      }
+    }
   }
 
   // Find the primary post media element (image or video)
-  function findPrimaryPostMedia(postRoot = document) {
+  function findPrimaryPostMedia(postRoot) {
+    if (!postRoot) return null;
+
     // 1. Check video
     const videos = postRoot.querySelectorAll('video');
     for (const v of videos) {
+      if (v.closest('header, nav, footer, aside, [role="navigation"], [role="complementary"]')) continue;
       const rect = v.getBoundingClientRect();
-      if (rect.width > 200 && rect.height > 200) {
+      if ((rect.width > 200 && rect.height > 200) || (v.clientWidth > 200 && v.clientHeight > 200)) {
         return v;
       }
     }
@@ -1123,13 +1116,15 @@
     let maxArea = 0;
 
     for (const img of imgs) {
-      if (img.closest('header') || img.closest('nav') || img.closest('footer')) continue;
+      if (img.closest('header, nav, footer, aside, [role="navigation"], [role="complementary"]')) continue;
       // Skip recommendation thumbnails ("More posts from...")
-      if (img.closest('main > div:nth-child(2)') || img.closest('div[style*="max-width: 935px"] > div:nth-child(2)')) continue;
+      if (img.closest('div[style*="max-width: 935px"] > div:nth-child(2)')) continue;
+      // Skip avatar icons
+      if (img.closest('a[href*="/"] > div > img') || (img.clientWidth > 0 && img.clientWidth < 100)) continue;
 
       const rect = img.getBoundingClientRect();
-      const area = rect.width * rect.height;
-      if (area > maxArea && (img.clientWidth > 200 || img.naturalWidth > 200)) {
+      const area = (rect.width || img.clientWidth || 0) * (rect.height || img.clientHeight || 0);
+      if (area > maxArea && (img.clientWidth > 200 || img.naturalWidth > 200 || rect.width > 200)) {
         maxArea = area;
         bestImg = img;
       }
@@ -1140,6 +1135,14 @@
 
   function injectFloatingBadge(postRoot) {
     if (!postRoot) return;
+    if (!showFloatingBadge) return;
+    // Strictly one floating badge per post
+    if (postRoot.querySelector('.insta-dl-media-badge-container')) return;
+
+    if (postRoot.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer')) {
+      return;
+    }
+
     const mediaEl = findPrimaryPostMedia(postRoot);
     if (!mediaEl) return;
 
@@ -1157,6 +1160,7 @@
     const badge = document.createElement('button');
     badge.type = 'button';
     badge.className = 'insta-dl-media-badge';
+    badge.setAttribute('aria-label', 'Download Media');
     badge.innerHTML = `
       <svg viewBox="0 0 24 24"><path d="M12 2.5a1 1 0 0 1 1 1v10.172l2.879-2.879a1 1 0 1 1 1.414 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-4.586-4.586a1 1 0 1 1 1.414-1.414L11 13.672V3.5a1 1 0 0 1 1-1Z" fill="currentColor"></path><path d="M3.5 16.5a1 1 0 0 1 1 1V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-1.5a1 1 0 1 1 2 0V19a3 3 0 0 1-3 3H5.5a3 3 0 0 1-3-3v-1.5a1 1 0 0 1 1-1Z" fill="currentColor"></path></svg>
       <span>Download</span>
@@ -1174,22 +1178,58 @@
 
   // Master scan function
   function scanAndInject() {
-    // 1. Scan and inject into all action bars (feed, modal overlay, AND standalone /p/:id/ pages)
-    const actionBars = findActionBars();
-    actionBars.forEach((bar) => {
-      injectDownloadButtonIntoActionBar(bar);
+    cleanupOrphanButtons();
+
+    const postContainers = [];
+
+    // 1. All post articles (home feed, profile feed, explore feed)
+    document.querySelectorAll('article').forEach((art) => {
+      if (!postContainers.includes(art)) {
+        postContainers.push(art);
+      }
     });
 
-    // 2. Scan articles for floating media badges
-    document.querySelectorAll('article').forEach((article) => {
-      injectFloatingBadge(article);
+    // 2. Post dialog modals (when clicking a post in explore or profile grid)
+    document.querySelectorAll('div[role="dialog"]').forEach((dlg) => {
+      const art = dlg.querySelector('article');
+      if (art) {
+        if (!postContainers.includes(art)) {
+          postContainers.push(art);
+        }
+      } else if (
+        dlg.querySelector('img, video') &&
+        dlg.querySelector('[aria-label*="Like" i], [aria-label*="Save" i], polygon[points*="12 13.44"]')
+      ) {
+        if (!postContainers.includes(dlg)) {
+          postContainers.push(dlg);
+        }
+      }
     });
 
-    // 3. Standalone post or reel page media check (/p/:id/ or /reel/:id/)
-    if (window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/)) {
-      const main = document.querySelector('main') || document.body;
-      injectFloatingBadge(main);
+    // 3. Standalone post or reel page (/p/:id/ or /reel/:id/ or standalone test bed)
+    const isStandalonePage =
+      window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) ||
+      document.querySelector('.standalone-post-view');
+
+    if (isStandalonePage) {
+      const standalonePost =
+        document.querySelector('.standalone-post-view main') ||
+        document.querySelector('main article') ||
+        document.querySelector('main > div') ||
+        document.querySelector('main');
+
+      if (standalonePost && !postContainers.some((c) => c === standalonePost || c.contains(standalonePost) || standalonePost.contains(c))) {
+        postContainers.push(standalonePost);
+      }
     }
+
+    // Inject into each legitimate post container
+    postContainers.forEach((postContainer) => {
+      injectDownloadButtonIntoPost(postContainer);
+      if (showFloatingBadge) {
+        injectFloatingBadge(postContainer);
+      }
+    });
   }
 
   // =========================================================================

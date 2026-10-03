@@ -68,6 +68,54 @@ body[class*="dark"] .insta-dl-action-btn,
 }
 
 /* ==========================================================================
+   Story Top Controls Download Button
+   ========================================================================== */
+.insta-dl-story-btn-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.insta-dl-story-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  outline: none;
+}
+
+.insta-dl-story-btn:hover {
+  opacity: 0.7;
+  transform: scale(1.08);
+}
+
+.insta-dl-story-btn:active {
+  transform: scale(0.95);
+  opacity: 0.5;
+}
+
+.insta-dl-story-btn svg {
+  display: block;
+  fill: currentColor;
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* ==========================================================================
    Floating Media Badge (Top-Right of Post Media)
    ========================================================================== */
 .insta-dl-media-badge-container {
