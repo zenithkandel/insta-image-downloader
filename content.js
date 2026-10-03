@@ -124,20 +124,84 @@
     });
   }
 
+  function getBlobDataFromInjected(blobUrl) {
+    return new Promise((resolve) => {
+      if (!blobUrl || !blobUrl.startsWith('blob:')) return resolve(null);
+
+      const requestId = 'blob_' + Math.random().toString(36).substring(2, 9);
+      let resolved = false;
+
+      function onMessage(event) {
+        if (
+          event.source === window &&
+          event.data &&
+          event.data.type === 'INSTA_DL_RESPONSE' &&
+          event.data.requestId === requestId
+        ) {
+          window.removeEventListener('message', onMessage);
+          resolved = true;
+          resolve(event.data.dataUrl || null);
+        }
+      }
+
+      window.addEventListener('message', onMessage);
+
+      window.postMessage(
+        {
+          type: 'INSTA_DL_REQUEST',
+          action: 'GET_BLOB_DATA',
+          blobUrl,
+          requestId
+        },
+        '*'
+      );
+
+      setTimeout(() => {
+        if (!resolved) {
+          window.removeEventListener('message', onMessage);
+          resolve(null);
+        }
+      }, 1500);
+    });
+  }
+
   // =========================================================================
   // DOM Metadata & Shortcode Extraction
   // =========================================================================
   function getPostMetadata(postContainer) {
     let shortcode = '';
     let username = '';
+    let isStory = false;
 
-    // Check location URL if on single post page (/p/SHORTCODE or /reel/SHORTCODE)
-    const pageMatch = window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
-    if (pageMatch) {
-      shortcode = pageMatch[1];
+    // 1. Check Stories URL: /stories/:username/:storyId/
+    const storyMatch = window.location.pathname.match(/\/stories\/([^\/]+)(?:\/(\d+))?/);
+    if (storyMatch) {
+      username = storyMatch[1];
+      shortcode = storyMatch[2] || 'story_' + storyMatch[1];
+      isStory = true;
     }
 
-    // Check links inside postContainer
+    // 2. Check location URL if on single post page (/p/SHORTCODE or /reel/SHORTCODE)
+    if (!shortcode) {
+      const pageMatch = window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+      if (pageMatch) {
+        shortcode = pageMatch[1];
+      }
+    }
+
+    // 3. Check links inside postContainer
+    if (!shortcode && postContainer) {
+      const storyLink = postContainer.querySelector('a[href*="/stories/"]');
+      if (storyLink) {
+        const sMatch = (storyLink.getAttribute('href') || '').match(/\/stories\/([^\/]+)(?:\/(\d+))?/);
+        if (sMatch) {
+          username = sMatch[1];
+          shortcode = sMatch[2] || 'story_' + sMatch[1];
+          isStory = true;
+        }
+      }
+    }
+
     if (!shortcode && postContainer) {
       const postLinks = postContainer.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
       for (const link of postLinks) {
@@ -172,6 +236,15 @@
       }
     }
 
+    // Check story reply textarea placeholder: "Reply to kmc_note..."
+    if (!username && postContainer) {
+      const replyArea = postContainer.querySelector('textarea[placeholder*="Reply to" i]');
+      if (replyArea) {
+        const m = replyArea.placeholder.match(/Reply to\s+([^.]+)/i);
+        if (m && m[1]) username = m[1].trim();
+      }
+    }
+
     if (!username && postContainer) {
       // Look for any element with username text
       const authorElem = postContainer.querySelector('span._ap3a._aaco._aacw._aacx._aad7._aade, h2');
@@ -189,8 +262,9 @@
     }
 
     return {
-      shortcode: shortcode || 'post_' + Math.random().toString(36).substring(2, 8),
-      username: username || 'instagram_user'
+      shortcode: shortcode || (isStory ? 'story_' : 'post_') + Math.random().toString(36).substring(2, 8),
+      username: username || 'instagram_user',
+      isStory
     };
   }
 
