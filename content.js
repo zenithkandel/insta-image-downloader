@@ -1118,11 +1118,11 @@
 
     document.querySelectorAll('.insta-dl-action-btn-wrapper').forEach((wrapper) => {
       if (
+        isStoriesUrl ||
+        wrapper.closest('.insta-dl-story-active') ||
         wrapper.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer') ||
         (!wrapper.closest('article') &&
           !wrapper.closest('div[role="dialog"]') &&
-          !wrapper.closest('.insta-dl-story-active') &&
-          !isStoriesUrl &&
           !window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) &&
           !document.querySelector('.standalone-post-view'))
       ) {
@@ -1444,27 +1444,13 @@
     if (!activeStoryContainer) return;
     activeStoryContainer.classList.add('insta-dl-story-active');
 
-    // 1. Inject Top Control Button (next to Menu)
+    // Inject Top Control Button (next to Menu & Pause)
     const topMenuSvg = activeStoryContainer.querySelector('svg[aria-label="Menu" i]');
     if (topMenuSvg) {
       const menuBtn = topMenuSvg.closest('div[role="button"]') || topMenuSvg.closest('button') || topMenuSvg.parentElement;
       if (menuBtn && menuBtn.parentElement && !menuBtn.parentElement.querySelector('.insta-dl-story-btn-wrapper')) {
         const storyBtn = createStoryTopButton(activeStoryContainer);
         menuBtn.parentElement.insertBefore(storyBtn, menuBtn);
-      }
-    }
-
-    // 2. Inject Bottom Action Button (next to Direct or Like)
-    const directSvg = activeStoryContainer.querySelector('svg[aria-label="Direct" i]');
-    const likeSvg = activeStoryContainer.querySelector('svg[aria-label="Like" i]');
-    const targetActionSvg = directSvg || likeSvg;
-
-    if (targetActionSvg && !activeStoryContainer.querySelector('.insta-dl-action-btn-wrapper')) {
-      const actionBtnTarget = targetActionSvg.closest('div[role="button"]') || targetActionSvg.closest('button') || targetActionSvg.parentElement;
-      if (actionBtnTarget && actionBtnTarget.parentElement) {
-        const sampleSvg = actionBtnTarget.querySelector('svg');
-        const btnWrapper = createActionButton(activeStoryContainer, sampleSvg);
-        actionBtnTarget.parentElement.insertBefore(btnWrapper, actionBtnTarget.nextSibling);
       }
     }
   }
