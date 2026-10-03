@@ -327,11 +327,12 @@
       }
 
       if (!result && shortcode) {
-        const userStories = mediaStore.get('user_stories_' + shortcode);
+        const cleanUser = shortcode.replace(/^user_stories_/, '').replace(/^story_/, '');
+        const userStories = mediaStore.get('user_stories_' + cleanUser) || mediaStore.get('user_stories_' + shortcode);
         if (userStories && userStories.length > 0) {
           const allItems = userStories.flatMap((s) => s.items);
           result = {
-            username: shortcode,
+            username: cleanUser,
             shortcode,
             items: allItems
           };

@@ -302,16 +302,37 @@
     const isCarousel = slideButtons.length > 1 || !!article.querySelector('button[aria-label="Next"], button[aria-label*="Next"]');
 
     if (!isCarousel) {
-      // Single media post
+      // Single media post or Story
       const video = article.querySelector('video');
-      if (video && video.src && !video.src.startsWith('blob:')) {
-        items.push({
-          type: 'video',
-          url: video.src,
-          width: video.videoWidth || 1080,
-          height: video.videoHeight || 1080
-        });
-        return items;
+      if (video) {
+        const vSrc = video.currentSrc || video.src;
+        if (vSrc) {
+          if (!vSrc.startsWith('blob:')) {
+            items.push({
+              type: 'video',
+              url: vSrc,
+              width: video.videoWidth || 1080,
+              height: video.videoHeight || 1920
+            });
+            return items;
+          } else {
+            // Resolve blob via main world injected script
+            try {
+              const dataUrl = await getBlobDataFromInjected(vSrc);
+              if (dataUrl) {
+                items.push({
+                  type: 'video',
+                  url: dataUrl,
+                  width: video.videoWidth || 1080,
+                  height: video.videoHeight || 1920
+                });
+                return items;
+              }
+            } catch (e) {
+              console.warn('[Instagram Media Downloader] Video blob resolution error:', e);
+            }
+          }
+        }
       }
 
       // Check main image
@@ -325,13 +346,14 @@
         const h = img.clientHeight || img.naturalHeight || 0;
         const area = w * h;
 
-        if (w > 160 && h > 160 && area > maxArea) {
+        if (w > 100 && h > 100 && area > maxArea) {
           // Avoid recommendation grid images at bottom if on standalone page
           const isFooterRec =
             img.closest('main > div:nth-child(2)') ||
             img.closest('div[style*="max-width: 935px"] > div:nth-child(2)') ||
             img.closest('footer') ||
-            img.closest('header');
+            img.closest('header') ||
+            img.closest('a[class*="_a6hd"]');
           if (!isFooterRec) {
             maxArea = area;
             bestImg = img;
@@ -342,7 +364,7 @@
       if (!bestImg && imgs.length > 0) {
         for (const img of imgs) {
           const w = img.clientWidth || img.naturalWidth || 0;
-          if (w > 120) {
+          if (w > 100 && !img.closest('a[class*="_a6hd"]')) {
             bestImg = img;
             break;
           }
@@ -356,7 +378,7 @@
             type: 'image',
             url,
             width: bestImg.naturalWidth || 1080,
-            height: bestImg.naturalHeight || 1080
+            height: bestImg.naturalHeight || 1920
           });
         }
       }
@@ -457,11 +479,28 @@
 
     // Step 1: Check Injected Script network cache
     try {
-      const netData = await getMediaFromInjected(metadata.shortcode);
-      if (netData && Array.isArray(netData.items) && netData.items.length > 0) {
-        console.log('[Instagram Media Downloader] Found media via network cache:', netData.items.length);
-        if (netData.username) metadata.username = netData.username;
-        return netData.items;
+      if (metadata.isStory && metadata.username) {
+        if (metadata.shortcode && !metadata.shortcode.startsWith('story_')) {
+          const netData = await getMediaFromInjected(metadata.shortcode);
+          if (netData && Array.isArray(netData.items) && netData.items.length > 0) {
+            console.log('[Instagram Media Downloader] Found story via shortcode in network cache:', netData.items.length);
+            if (netData.username) metadata.username = netData.username;
+            return netData.items;
+          }
+        }
+        const userStoriesData = await getMediaFromInjected('user_stories_' + metadata.username);
+        if (userStoriesData && Array.isArray(userStoriesData.items) && userStoriesData.items.length > 0) {
+          console.log('[Instagram Media Downloader] Found stories via user_stories cache:', userStoriesData.items.length);
+          if (userStoriesData.username) metadata.username = userStoriesData.username;
+          return userStoriesData.items;
+        }
+      } else {
+        const netData = await getMediaFromInjected(metadata.shortcode);
+        if (netData && Array.isArray(netData.items) && netData.items.length > 0) {
+          console.log('[Instagram Media Downloader] Found media via network cache:', netData.items.length);
+          if (netData.username) metadata.username = netData.username;
+          return netData.items;
+        }
       }
     } catch (e) {
       console.warn('[Instagram Media Downloader] Network cache check error:', e);
@@ -768,34 +807,87 @@
     });
 
     try {
-      // Check for active video first
-      const video = article.querySelector('video');
-      if (video && video.src && !video.src.startsWith('blob:')) {
-        const { blob } = await fetchMediaBlob(video.src);
-        const filename = `${metadata.username}_${metadata.shortcode}_current.mp4`;
+      // 1. If we have it in network cache, use the item from network cache
+      const netData = await getMediaFromInjected(metadata.shortcode);
+      if (netData && Array.isArray(netData.items) && netData.items.length > 0) {
+        const item = netData.items[0];
+        const { blob } = await fetchMediaBlob(item.url);
+        const ext = item.type === 'video' ? 'mp4' : 'jpg';
+        const filename = `${metadata.username}_${metadata.shortcode}_current.${ext}`;
         triggerFileDownload(blob, filename);
         showToast({
-          title: 'Video Downloaded! 🎉',
+          title: `${item.type === 'video' ? 'Video' : 'Image'} Downloaded! 🎉`,
           message: filename,
           isSuccess: true
         });
         return;
       }
+      if (metadata.isStory && metadata.username) {
+        const userNet = await getMediaFromInjected('user_stories_' + metadata.username);
+        if (userNet && Array.isArray(userNet.items) && userNet.items.length > 0) {
+          const item = userNet.items[0];
+          const { blob } = await fetchMediaBlob(item.url);
+          const ext = item.type === 'video' ? 'mp4' : 'jpg';
+          const filename = `${metadata.username}_${metadata.shortcode}_current.${ext}`;
+          triggerFileDownload(blob, filename);
+          showToast({
+            title: `${item.type === 'video' ? 'Video' : 'Image'} Downloaded! 🎉`,
+            message: filename,
+            isSuccess: true
+          });
+          return;
+        }
+      }
 
-      // Check current visible image
-      const imgs = article.querySelectorAll('ul li img, div._aagu img, div._aagv img');
+      // 2. Check for active video in DOM
+      const video = article.querySelector('video');
+      if (video) {
+        const vSrc = video.currentSrc || video.src;
+        if (vSrc) {
+          let blobData = null;
+          if (vSrc.startsWith('blob:')) {
+            const dataUrl = await getBlobDataFromInjected(vSrc);
+            if (dataUrl) {
+              const res = await fetchMediaBlob(dataUrl);
+              blobData = res.blob;
+            }
+          } else {
+            const res = await fetchMediaBlob(vSrc);
+            blobData = res.blob;
+          }
+
+          if (blobData) {
+            const filename = `${metadata.username}_${metadata.shortcode}_current.mp4`;
+            triggerFileDownload(blobData, filename);
+            showToast({
+              title: 'Video Downloaded! 🎉',
+              message: filename,
+              isSuccess: true
+            });
+            return;
+          }
+        }
+      }
+
+      // 3. Check current visible image
+      const imgs = article.querySelectorAll('img[src*="cdninstagram"], img[src*="fbcdn"], div._aagu img, div._aagv img, ul li img, img');
       let currentImg = null;
+      let maxArea = 0;
       for (const img of imgs) {
-        if ((img.clientWidth || img.naturalWidth || 0) > 150) {
+        if (img.closest('a._a6hd') || img.closest('header') || img.closest('a[role="link"] > div > img')) continue;
+        const w = img.clientWidth || img.naturalWidth || 0;
+        const h = img.clientHeight || img.naturalHeight || 0;
+        const area = w * h;
+        if (area > maxArea && (w > 100 || img.getAttribute('height') === '100%')) {
+          maxArea = area;
           currentImg = img;
-          break;
         }
       }
 
       if (!currentImg) {
         showToast({
           title: 'Not Found',
-          message: 'Could not detect active image on screen.',
+          message: 'Could not detect active media on screen.',
           isError: true
         });
         return;
@@ -833,7 +925,13 @@
   }
 
   document.addEventListener('click', (e) => {
-    if (openDropdown && !openDropdown.contains(e.target) && !e.target.closest('.insta-dl-action-btn') && !e.target.closest('.insta-dl-media-badge')) {
+    if (
+      openDropdown &&
+      !openDropdown.contains(e.target) &&
+      !e.target.closest('.insta-dl-action-btn') &&
+      !e.target.closest('.insta-dl-story-btn') &&
+      !e.target.closest('.insta-dl-media-badge')
+    ) {
       closeOpenDropdown();
     }
   });
@@ -848,7 +946,8 @@
     const metadata = getPostMetadata(article);
     const slideButtons = article.querySelectorAll('button[aria-label*="slide"], button[aria-label*="Slide"]');
     const isCarousel = slideButtons.length > 1;
-    const mediaTypeLabel = isCarousel ? `Carousel (${slideButtons.length} items)` : 'Single Post';
+    const isStory = metadata.isStory || article.classList.contains('insta-dl-story-active') || !!article.querySelector('textarea[placeholder*="Reply to" i]');
+    const mediaTypeLabel = isStory ? 'Story' : isCarousel ? `Carousel (${slideButtons.length} items)` : 'Single Post';
 
     const menu = document.createElement('div');
     menu.className = 'insta-dl-dropdown';
@@ -1015,11 +1114,15 @@
 
   // Remove any button erroneously placed outside a legitimate post container
   function cleanupOrphanButtons() {
+    const isStoriesUrl = window.location.pathname.startsWith('/stories/');
+
     document.querySelectorAll('.insta-dl-action-btn-wrapper').forEach((wrapper) => {
       if (
         wrapper.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer') ||
         (!wrapper.closest('article') &&
           !wrapper.closest('div[role="dialog"]') &&
+          !wrapper.closest('.insta-dl-story-active') &&
+          !isStoriesUrl &&
           !window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) &&
           !document.querySelector('.standalone-post-view'))
       ) {
@@ -1030,12 +1133,20 @@
     document.querySelectorAll('.insta-dl-media-badge-container').forEach((badge) => {
       if (
         badge.closest('nav, [role="navigation"], aside, [role="complementary"], header, footer') ||
+        isStoriesUrl ||
+        badge.closest('.insta-dl-story-active') ||
         (!badge.closest('article') &&
           !badge.closest('div[role="dialog"]') &&
           !window.location.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/) &&
           !document.querySelector('.standalone-post-view'))
       ) {
         badge.remove();
+      }
+    });
+
+    document.querySelectorAll('.insta-dl-story-btn-wrapper').forEach((wrapper) => {
+      if (!isStoriesUrl && !wrapper.closest('.insta-dl-story-active') && !document.querySelector('textarea[placeholder*="Reply to" i]')) {
+        wrapper.remove();
       }
     });
   }
