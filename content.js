@@ -1184,6 +1184,10 @@
 
   function injectDownloadButtonIntoPost(postContainer) {
     if (!postContainer) return;
+    // Stories have dedicated injection handled by scanAndInjectStories
+    if (postContainer.classList.contains('insta-dl-story-active') || postContainer.querySelector('textarea[placeholder*="Reply to" i]')) {
+      return;
+    }
     // Strictly one download button per post container
     if (postContainer.querySelector('.insta-dl-action-btn-wrapper')) return;
 
@@ -1321,6 +1325,13 @@
   function injectFloatingBadge(postRoot) {
     if (!postRoot) return;
     if (!showFloatingBadge) return;
+    if (
+      window.location.pathname.startsWith('/stories/') ||
+      postRoot.classList.contains('insta-dl-story-active') ||
+      postRoot.querySelector('textarea[placeholder*="Reply to" i]')
+    ) {
+      return;
+    }
     // Strictly one floating badge per post
     if (postRoot.querySelector('.insta-dl-media-badge-container')) return;
 
@@ -1361,9 +1372,109 @@
     container.appendChild(badgeContainer);
   }
 
+  // =========================================================================
+  // Story Button & Active Frame Detection
+  // =========================================================================
+  function createStoryTopButton(storyContainer) {
+    const btnWrapper = document.createElement('div');
+    btnWrapper.className = 'insta-dl-story-btn-wrapper';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'insta-dl-story-btn';
+    btn.setAttribute('aria-label', 'Download Story');
+    btn.setAttribute('title', 'Download Story');
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+        <path d="M12 2.5a1 1 0 0 1 1 1v10.172l2.879-2.879a1 1 0 1 1 1.414 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-4.586-4.586a1 1 0 1 1 1.414-1.414L11 13.672V3.5a1 1 0 0 1 1-1Z" fill="currentColor"></path>
+        <path d="M3.5 16.5a1 1 0 0 1 1 1V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-1.5a1 1 0 1 1 2 0V19a3 3 0 0 1-3 3H5.5a3 3 0 0 1-3-3v-1.5a1 1 0 0 1 1-1Z" fill="currentColor"></path>
+      </svg>
+    `;
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showDownloadMenu(btnWrapper, storyContainer);
+    });
+
+    btnWrapper.appendChild(btn);
+    return btnWrapper;
+  }
+
+  function scanAndInjectStories() {
+    const isStoriesUrl = window.location.pathname.startsWith('/stories/');
+    const replyArea = document.querySelector('textarea[placeholder*="Reply to" i]');
+    if (!isStoriesUrl && !replyArea) return;
+
+    // Locate active story container
+    let activeStoryContainer = null;
+    if (replyArea) {
+      let curr = replyArea.parentElement;
+      while (curr && curr !== document.body) {
+        if (
+          curr.querySelector('video, img') &&
+          (curr.querySelector('svg[aria-label="Menu" i]') || curr.querySelector('svg[aria-label="Pause" i]'))
+        ) {
+          activeStoryContainer = curr;
+          break;
+        }
+        if (curr.style && curr.style.transform && curr.style.transform.includes('translateX')) {
+          activeStoryContainer = curr;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+      if (!activeStoryContainer) {
+        activeStoryContainer = replyArea.closest('section') || replyArea.closest('div[style*="height"]') || replyArea.parentElement;
+      }
+    }
+
+    const menuSvg = document.querySelector('svg[aria-label="Menu" i]');
+    if (menuSvg && !activeStoryContainer) {
+      let curr = menuSvg.parentElement;
+      while (curr && curr !== document.body) {
+        if (curr.querySelector('video') || curr.querySelector('textarea[placeholder*="Reply to" i]')) {
+          activeStoryContainer = curr;
+          break;
+        }
+        curr = curr.parentElement;
+      }
+    }
+
+    if (!activeStoryContainer) return;
+    activeStoryContainer.classList.add('insta-dl-story-active');
+
+    // 1. Inject Top Control Button (next to Menu)
+    const topMenuSvg = activeStoryContainer.querySelector('svg[aria-label="Menu" i]');
+    if (topMenuSvg) {
+      const menuBtn = topMenuSvg.closest('div[role="button"]') || topMenuSvg.closest('button') || topMenuSvg.parentElement;
+      if (menuBtn && menuBtn.parentElement && !menuBtn.parentElement.querySelector('.insta-dl-story-btn-wrapper')) {
+        const storyBtn = createStoryTopButton(activeStoryContainer);
+        menuBtn.parentElement.insertBefore(storyBtn, menuBtn);
+      }
+    }
+
+    // 2. Inject Bottom Action Button (next to Direct or Like)
+    const directSvg = activeStoryContainer.querySelector('svg[aria-label="Direct" i]');
+    const likeSvg = activeStoryContainer.querySelector('svg[aria-label="Like" i]');
+    const targetActionSvg = directSvg || likeSvg;
+
+    if (targetActionSvg && !activeStoryContainer.querySelector('.insta-dl-action-btn-wrapper')) {
+      const actionBtnTarget = targetActionSvg.closest('div[role="button"]') || targetActionSvg.closest('button') || targetActionSvg.parentElement;
+      if (actionBtnTarget && actionBtnTarget.parentElement) {
+        const sampleSvg = actionBtnTarget.querySelector('svg');
+        const btnWrapper = createActionButton(activeStoryContainer, sampleSvg);
+        actionBtnTarget.parentElement.insertBefore(btnWrapper, actionBtnTarget.nextSibling);
+      }
+    }
+  }
+
   // Master scan function
   function scanAndInject() {
     cleanupOrphanButtons();
+
+    // 1. Stories injection
+    scanAndInjectStories();
 
     const postContainers = [];
 
